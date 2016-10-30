@@ -9,22 +9,27 @@ import java.util.HashMap;
  * 2, erase Mac and SN from STB and 
  * 3, write Mac and SN to STB and 
  * 4, others
- */
+ * @authour Tsing
+ */ 
 public class MacWriter {
 
   public static final int STBPORT = 1300; // STB port
   public static final int RECVPORT = 1301; // local port for receiving data
   private InetAddress ADDR;
   private DatagramSocket socket;
-  private Log log; // take a Log object to log informations
-  private DBConnector dbConnector; // dbConnector is responsible for 
-                                   // geting data from db
   private XmlParser xmlParser; // xmlParser is responsible for parsing cmd xml
+
+  private ArrayList<MacWritingListener> listenerList;
 
   /**
    * initialize socket
+   * pass a XmlParser instance of XmlParser to the constructor,
+   * so this class could share it with others
+   * @param XmlParser
    */
-  public MacWriter() {
+  public MacWriter(XmlParser parser) {
+    xmlParser = parser;
+
     try {
       ADDR = InetAddress.getByName("225.0.0.1"); // broadcast address
       socket = new DatagramSocket(1301); // use UDP socket; bind port 1301
@@ -37,8 +42,9 @@ public class MacWriter {
   /**
    * check advanced sercurity before testing
    */
-  public boolean checkAdcSercurity() {
+  public boolean checkAdc() {
     // unimplemented
+    processEvent(new CheckAdcEvent(this, "check_adv_security", "pass"))
     return true;
   }
   
@@ -47,8 +53,10 @@ public class MacWriter {
    * to check if both and crc of each are validate;
    * return true if all of those are validate, false if not
    */
-  public boolean checkMacWithDB(String Mac, String SN) {
+  public boolean checkMacWithDB(String stbMac, String stbSN) {
     // unimplemented
+    processEvent(new CheckMacWithDBEvent(this, "check_mac_with_db", stbMac, dbMac, 
+          stbSn, dbsn, "pass");
     return true;
   }
 
@@ -58,6 +66,7 @@ public class MacWriter {
    */
   public boolean eraseMac() {
     // unimplemented
+    processEvent(new EraseEvent(this, "erase", "pass");
     return true;
   }
   
@@ -67,6 +76,7 @@ public class MacWriter {
    */
   public HashMap<String, String> getMac() {
     // unimplemented
+    processEvent(new GetEvent(this, "get", "pass");
     HashMap<String, String> map = null;
     return map;
   }
@@ -75,8 +85,9 @@ public class MacWriter {
    * write Mac and SN to SBT;
    * return true if writing successfully
    */
-  public boolean writeMac(String Mac, String SN) {
+  public boolean setMac(String Mac, String SN) {
     // unimplemented
+    processEvent(new SetEvent(this, "set", Mac, SN, "pass"));
     return true;
   }
 
@@ -85,6 +96,7 @@ public class MacWriter {
    */
   public boolean reboot() {
     // unimplemented
+    processEvent(new RebootEvent(this, "reboot", "pass"));
     return true;
   }
 
@@ -94,7 +106,7 @@ public class MacWriter {
    * return XML string received from STB if query OK, 
    * else return warning message
    */
-  public String handleCmd(String cmdXml) {
+  public String getRet(String cmdXml) {
     try {
       DatagramPacket dp = new DatagramPacket(cmdXml.getBytes(),
          cmdXml.length(), ADDR, STBPORT);
@@ -107,7 +119,29 @@ public class MacWriter {
       return new String(buff);
     } catch (Exception ex) {
       ex.printStackTrace();
-      return "operation failed";
+      return null;
     }
+  }
+  
+  /** add a listener */
+  public void addMacWritingListener(MacWritingListener listener) {
+    if (listenerList == null)
+      listenerList = new ArrayList<MacWritingListener>(3); // allow 3 listeners
+    listenerList.add(listener);
+  }
+
+  // method for remove listeners omitted here
+
+  /** fire Event */
+  private void processEvent(Event e) {
+    ArrayList list;
+
+    synchronized (this) {
+      if (listenerList == null) return;
+      list = (ArrayList)listenerList.clone();
+    }
+
+    for (MacWritingListener listener : list)
+      listener.actionPerformed(Event e);
   }
 }
