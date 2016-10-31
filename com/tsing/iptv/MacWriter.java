@@ -9,7 +9,7 @@ import java.util.HashMap;
  * 2, erase Mac and SN from STB and 
  * 3, write Mac and SN to STB and 
  * 4, others
- * @authour Tsing
+ * @author Tsing
  */ 
 public class MacWriter {
 
@@ -55,8 +55,8 @@ public class MacWriter {
    */
   public boolean checkMacWithDB(String stbMac, String stbSN) {
     // unimplemented
-    processEvent(new CheckMacWithDBEvent(this, "check_mac_with_db", stbMac, dbMac, 
-          stbSn, dbsn, "pass");
+    processEvent(new CheckMacWithDBEvent(
+          this, "check_mac_with_db", stbMac, dbMac, stbSn, dbsn, "pass"));
     return true;
   }
 
@@ -126,7 +126,8 @@ public class MacWriter {
   /** add a listener */
   public void addMacWritingListener(MacWritingListener listener) {
     if (listenerList == null)
-      listenerList = new ArrayList<MacWritingListener>(3); // allow 3 listeners
+      listenerList = 
+        new ArrayList<MacWritingListener>(3); // allow 3 listeners
     listenerList.add(listener);
   }
 
