@@ -2,6 +2,7 @@ package com.tsing.iptv;
 
 import java.net.*;
 import java.util.HashMap;
+import java.util.ArrayList;
 
 /**
  * provide functions to:
@@ -18,22 +19,22 @@ public class MacWriter {
   private InetAddress ADDR;
   private DatagramSocket socket;
   private XmlParser xmlParser; // xmlParser is responsible for parsing cmd xml
-
+  private DBConnector dbConnector;
   private ArrayList<MacWritingListener> listenerList;
 
   /**
    * initialize socket
    * pass a XmlParser instance of XmlParser to the constructor,
    * so this class could share it with others
-   * @param XmlParser
+   * @param XmlParser, DBConnector
    */
-  public MacWriter(XmlParser parser) {
+  public MacWriter(XmlParser parser, DBConnector connector) {
     xmlParser = parser;
-
+    dbConnector = connector;
     try {
       ADDR = InetAddress.getByName("225.0.0.1"); // broadcast address
       socket = new DatagramSocket(1301); // use UDP socket; bind port 1301
-      socket.setSoTimeout(3000); // set time for timeout as 3 secs;
+      socket.setSoTimeout(1000); // set time for timeout as 1 sec;
     } catch (Exception ex) {
       ex.printStackTrace();
     }
@@ -44,7 +45,8 @@ public class MacWriter {
    */
   public boolean checkAdc() {
     // unimplemented
-    processEvent(new CheckAdcEvent(this, "check_adv_security", "pass"))
+    HashMap<String, String> result = new HashMap<String, String>();
+    processEvent(new MacWritingEvent(this, result));
     return true;
   }
   
@@ -55,8 +57,8 @@ public class MacWriter {
    */
   public boolean checkMacWithDB(String stbMac, String stbSN) {
     // unimplemented
-    processEvent(new CheckMacWithDBEvent(
-          this, "check_mac_with_db", stbMac, dbMac, stbSn, dbsn, "pass"));
+    HashMap<String, String> result = new HashMap<String, String>();
+    processEvent(new MacWritingEvent(this, result));
     return true;
   }
 
@@ -66,7 +68,8 @@ public class MacWriter {
    */
   public boolean eraseMac() {
     // unimplemented
-    processEvent(new EraseEvent(this, "erase", "pass");
+    HashMap<String, String> result = new HashMap<String, String>();
+    processEvent(new MacWritingEvent(this, result));
     return true;
   }
   
@@ -76,7 +79,8 @@ public class MacWriter {
    */
   public HashMap<String, String> getMac() {
     // unimplemented
-    processEvent(new GetEvent(this, "get", "pass");
+    HashMap<String, String> result = new HashMap<String, String>();
+    processEvent(new MacWritingEvent(this, result));
     HashMap<String, String> map = null;
     return map;
   }
@@ -87,7 +91,8 @@ public class MacWriter {
    */
   public boolean setMac(String Mac, String SN) {
     // unimplemented
-    processEvent(new SetEvent(this, "set", Mac, SN, "pass"));
+    HashMap<String, String> result = new HashMap<String, String>();
+    processEvent(new MacWritingEvent(this, result));
     return true;
   }
 
@@ -96,7 +101,8 @@ public class MacWriter {
    */
   public boolean reboot() {
     // unimplemented
-    processEvent(new RebootEvent(this, "reboot", "pass"));
+    HashMap<String, String> result = new HashMap<String, String>();
+    processEvent(new MacWritingEvent(this, result));
     return true;
   }
 
@@ -107,20 +113,35 @@ public class MacWriter {
    * else return warning message
    */
   public String getRet(String cmdXml) {
+    HashMap<String, String> result = new HashMap<String, String>();
+    String cmd = "connect_to_SBT";
     try {
       DatagramPacket dp = new DatagramPacket(cmdXml.getBytes(),
          cmdXml.length(), ADDR, STBPORT);
-      socket.send(dp); // send cmd xml to STB by multicasting
+      int retry = 0; //record retry times;
+      for (int i = 0; i < 5; i++) { // if fails, retry 5 times
+        try {
+          socket.send(dp); // send cmd xml to STB by multicasting
 
-      // get result from STB
-      byte[] buff = new byte[1024];
-      DatagramPacket recvDp = new DatagramPacket(buff, 1024);
-      socket.receive(recvDp);
-      return new String(buff);
+          // get result from STB:
+          byte[] buff = new byte[1024];
+          DatagramPacket recvDp = new DatagramPacket(buff, 1024);
+          socket.receive(recvDp);
+          String ret = new String(buff);
+          processEvent(new MacWritingEvent(this, result));
+          return ret;
+        } catch (Exception ex) {
+          retry += 1;
+          result.put("retry", new Integer(retry).toString());
+          processEvent(new MacWritingEvent(this, result));
+        }
+      }
     } catch (Exception ex) {
       ex.printStackTrace();
-      return null;
+      processEvent(new MacWritingEvent(this, result));
     }
+
+    return null;
   }
   
   /** add a listener */
@@ -134,15 +155,15 @@ public class MacWriter {
   // method for remove listeners omitted here
 
   /** fire Event */
-  private void processEvent(Event e) {
-    ArrayList list;
+  private void processEvent(MacWritingEvent e) {
+    ArrayList<MacWritingListener> listeners;
 
     synchronized (this) {
       if (listenerList == null) return;
-      list = (ArrayList)listenerList.clone();
+      listeners = (ArrayList<MacWritingListener>)listenerList.clone();
     }
 
     for (MacWritingListener listener : list)
-      listener.actionPerformed(Event e);
+      listener.MacWritingPerformed(e);
   }
 }
