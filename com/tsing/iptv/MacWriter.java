@@ -115,31 +115,29 @@ public class MacWriter {
   public String getRet(String cmdXml) {
     HashMap<String, String> result = new HashMap<String, String>();
     String cmd = "connect_to_SBT";
-    try {
-      DatagramPacket dp = new DatagramPacket(cmdXml.getBytes(),
-         cmdXml.length(), ADDR, STBPORT);
-      int retry = 0; //record retry times;
-      for (int i = 0; i < 5; i++) { // if fails, retry 5 times
-        try {
-          socket.send(dp); // send cmd xml to STB by multicasting
+    int retry = 0; //record retry times;
+    DatagramPacket dp = new DatagramPacket(cmdXml.getBytes(),
+       cmdXml.length(), ADDR, STBPORT);
+    for (int i = 0; i < 5; i++) { // if fails, retry 5 times
+      try {
+        socket.send(dp); // send cmd xml to STB by multicasting
+        System.out.println("dp sent"); /* for debugging */
 
-          // get result from STB:
-          byte[] buff = new byte[1024];
-          DatagramPacket recvDp = new DatagramPacket(buff, 1024);
-          socket.receive(recvDp);
-          String ret = new String(buff);
-          processEvent(new MacWritingEvent(this, result));
-          return ret;
-        } catch (Exception ex) {
-          retry += 1;
-          result.put("retry", new Integer(retry).toString());
-          processEvent(new MacWritingEvent(this, result));
-        }
+        // get result from STB:
+        byte[] buff = new byte[1024];
+        DatagramPacket recvDp = new DatagramPacket(buff, 1024);
+        socket.receive(recvDp);
+        String ret = new String(buff);
+        processEvent(new MacWritingEvent(this, result));
+        return ret;
+      } catch (Exception ex) {
+        ex.printStackTrace();
+        retry += 1;
+        System.out.println("retry+" + retry); // for debugging
+        result.put("retry", new Integer(retry).toString());
+        processEvent(new MacWritingEvent(this, result));
       }
-    } catch (Exception ex) {
-      ex.printStackTrace();
-      processEvent(new MacWritingEvent(this, result));
-    }
+    } ///~ tested OK; date: Wed  2 Nov 08:40:17 CST 2016
 
     return null;
   }
@@ -163,7 +161,7 @@ public class MacWriter {
       listeners = (ArrayList<MacWritingListener>)listenerList.clone();
     }
 
-    for (MacWritingListener listener : list)
+    for (MacWritingListener listener : listeners)
       listener.MacWritingPerformed(e);
   }
 }
