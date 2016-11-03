@@ -1,141 +1,108 @@
-import java.io.ByteArrayOutputStream;
 import java.io.File;
-import java.io.FileOutputStream;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.StringReader;
+import java.io.StringWriter;
 
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.parsers.ParserConfigurationException;
-import javax.xml.transform.Transformer;
-import javax.xml.transform.TransformerConfigurationException;
-import javax.xml.transform.TransformerException;
-import javax.xml.transform.TransformerFactory;
-import javax.xml.transform.dom.DOMSource;
-import javax.xml.transform.stream.StreamResult;
+import java.util.List;
 
-import org.w3c.dom.Document;
-import org.w3c.dom.Element;
-import org.w3c.dom.Node;
-import org.w3c.dom.NodeList;
+import org.dom4j.Document;
+import org.dom4j.DocumentException;
+import org.dom4j.DocumentHelper;
+import org.dom4j.Element;
+import org.dom4j.io.OutputFormat;
+import org.dom4j.io.SAXReader;
+import org.dom4j.io.XMLWriter;
+
 import org.xml.sax.InputSource;
-import org.xml.sax.SAXException;
 
 public class XMLHandler {
-  public XMLHandler() {
-  }
+	public XMLHandler() {
+	}
 
-  public String createXML() {
-    String xmlStr = null;
-    DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
-    try {
-      DocumentBuilder builder = factory.newDocumentBuilder();
-      Document document = builder.newDocument();
-      document.setXmlVersion("1.0");
+	public String createXML() {
+		String strXML = null;
+		Document document = DocumentHelper.createDocument();
+		Element root = document.addElement("root");
 
-      Element root = document.createElement("root");
-      document.appendChild(root);
+		Element phone = root.addElement("telephone");
 
-      Element telephone = document.createElement("Telephone");
+		Element nokia = phone.addElement("type");
+		nokia.addAttribute("name", "nokia");
+		Element price_nokia = nokia.addElement("price");
+		price_nokia.addText("599");
+		Element operator_nokia = nokia.addElement("operator");
+		operator_nokia.addText("CMCC");
 
-      Element nokia = document.createElement("type");
-      nokia.setAttribute("name", "nokia");
+		Element xiaomi = phone.addElement("type");
+		xiaomi.addAttribute("name", "xiaomi");
+		Element price_xiaomi = xiaomi.addElement("price");
+		price_xiaomi.addText("699");
+		Element operator_xiaomi = xiaomi.addElement("operator");
+		operator_xiaomi.addText("ChinaNet");
 
-      Element priceNokia = document.createElement("price");
-      priceNokia.setTextContent("599");
-      nokia.appendChild(priceNokia);
+		//----
+		StringWriter strWriter = new StringWriter();
+		OutputFormat format = OutputFormat.createPrettyPrint();
+		format.setEncoding("UTF-8");
+		XMLWriter xmlWriter = new XMLWriter(strWriter, format);
+		try {
+			xmlWriter.write(document);
+		} catch (IOException ex) {
+			ex.printStackTrace();
+		}
+		strXML = strWriter.toString();
+		//----
 
-      Element operatorNokia = document.createElement("operator");
-      operatorNokia.setTextContent("CMCC");
-      nokia.appendChild(operatorNokia);
+		//----
+		//strXML = document.asXML();
+		//----
 
-      telephone.appendChild(nokia);
+		//----
+		File file = new File("telephone.xml");
+		if (file.exists()) 
+			file.delete();
+		try {
+			file.createNewFile();
+			XMLWriter out = new XMLWriter(new FileWriter(file));
+			out.write(document);
+			out.flush();
+			out.close();
+		} catch (IOException ex) {
+			ex.printStackTrace();
+		}
 
-      Element xiaomi = document.createElement("type");
-      xiaomi.setAttribute("name", "xiaomi");
+		return strXML;
+	}
 
-      Element priceXiaomi = document.createElement("price");
-      priceXiaomi.setTextContent("699");
-      xiaomi.appendChild(priceXiaomi);
+	public void parseXML(String strXML) {
+		SAXReader reader = new SAXReader();
+		StringReader sr = new StringReader(strXML);
+		InputSource is = new InputSource(sr);
+		try {
+			Document document = reader.read(is);
+			
+			Element root = document.getRootElement();
 
-      Element operatorXiaomi = document.createElement("operator");
-      operatorXiaomi.setTextContent("ChinaNet");
-      xiaomi.appendChild(operatorXiaomi);
+			List<Element> phones = root.elements("telephone");
+			List<Element> types = phones.get(0).elements("type");
+			for (Element type : types) {
+				String phoneName = type.attributeValue("name");
+				System.out.println("phonename="+phoneName);
 
-      telephone.appendChild(xiaomi);
+				List<Element> childList = type.elements();
+				for (Element child : childList) 
+					System.out.println(child.getName()+"="+child.getText());
+			}
+		} catch (DocumentException ex) {
+			ex.printStackTrace();
+		}
+	}
 
-      root.appendChild(telephone);
-
-      TransformerFactory transFactory = TransformerFactory.newInstance();
-      Transformer transformer = transFactory.newTransformer();
-      DOMSource domSource = new DOMSource(document);
-
-      // export string
-      ByteArrayOutputStream bos = new ByteArrayOutputStream();
-      transformer.transform(domSource, new StreamResult(bos));
-      xmlStr = bos.toString();
-
-      // save as file
-      File file = new File("Telephone.xml");
-      if (!file.exists())
-        file.createNewFile();
-      
-      FileOutputStream out = new FileOutputStream(file);
-      StreamResult xmlResult = new StreamResult(out);
-      transformer.transform(domSource, xmlResult);
-      
-    } catch (ParserConfigurationException ex) {
-      ex.printStackTrace();
-    } catch (TransformerConfigurationException ex) {
-      ex.printStackTrace();
-    } catch (TransformerException ex) {
-      ex.printStackTrace();
-    } catch (IOException ex) {
-      ex.printStackTrace();
-    }
-
-    return xmlStr;
-  }
-
-  public void parseXML(String xmlStr) {
-    DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
-    try {
-      DocumentBuilder builder = factory.newDocumentBuilder();
-      StringReader sr = new StringReader(xmlStr);
-      InputSource is = new InputSource(sr);
-      Document doc = builder.parse(is);
-      Element rootElement = doc.getDocumentElement();
-      NodeList phones = rootElement.getElementsByTagName("type");
-      for (int i = 0; i < phones.getLength(); i++) {
-        Node type = phones.item(i);
-        String phoneName = ((Element)type).getAttribute("name");
-        System.out.println("Phone name="+phoneName);
-        NodeList properties = type.getChildNodes();
-        for (int j = 0; j < properties.getLength(); j++) {
-          Node property = properties.item(j);
-          String nodeName = property.getNodeName();
-          if (nodeName.equals("price")) {
-            String price = property.getFirstChild().getNodeValue();
-            System.out.println("price="+price);
-          } else if (nodeName.equals("operator")) {
-            String operator = property.getFirstChild().getNodeValue();
-            System.out.println("operator="+operator);
-          }
-        }
-      }
-    } catch (ParserConfigurationException ex) {
-      ex.printStackTrace();
-    } catch (SAXException ex) {
-      ex.printStackTrace();
-    } catch (IOException ex) {
-      ex.printStackTrace();
-    }
-  }
-
-  public static void main(String[] args) {
-    XMLHandler handler = new XMLHandler();
-    String xml = handler.createXML();
-    System.out.println(xml);
-    handler.parseXML(xml);
-  }
+	public static void main(String[] args) {
+		XMLHandler handler = new XMLHandler();
+		String strXML = handler.createXML();
+		System.out.println(strXML);
+		handler.parseXML(strXML);
+	}
 }
