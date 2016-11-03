@@ -1,10 +1,11 @@
 package com.tsing.iptv;
 
 import java.net.*;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.ArrayList;
 
 /**
+ * compile OK : 2016年 11月 04日 星期五 00:15:43 CST
  * provide functions to:
  * 1, check Mac and SN with database and STB,
  * 2, erase Mac and SN from STB and 
@@ -23,8 +24,8 @@ public class MacWriter {
   private ArrayList<MacWritingListener> listenerList;
 
   /**
-   * initialize socket
-   * pass a XmlParser instance of XmlParser to the constructor,
+   * initialize socket;
+   * pass a XmlParser instance of XmlParser to the constructor 
    * so this class could share it with others
    * @param XmlParser, DBConnector
    */
@@ -43,71 +44,187 @@ public class MacWriter {
   /**
    * check advanced sercurity before testing
    */
-  public boolean checkAdc() {
-    // unimplemented
-    HashMap<String, String> result = new HashMap<String, String>();
-    processEvent(new MacWritingEvent(this, result));
-    return true;
-  }
+  public boolean checkAdv() {
+    LinkedHashMap<String, String> result = new LinkedHashMap<String, String>();
+		result.put("cmd", "check_adv_security");
+		
+		String cmdXml = CmdXml.CHECK_ADV_XML;
+		String retXml = getRet(cmdXml); // send request to stb and get result
+		xmlParser.parse(retXml);  // parse result returned from stb;
+		String advSecurity = xmlParser.getValue("adv_security"); // get value
+		if (advSecurity == "enable") {
+			result.put("status", "pass");
+			processEvent(new MacWritingEvent(this, result));
+			return true;
+		} else {
+			result.put("statas", "fail");
+			processEvent(new MacWritingEvent(this, result));
+			return false;
+		}
+  } ///^ untested
   
+	/** enable advanced security function of stb */
+	public boolean setAdv() {
+		LinkedHashMap<String, String> result = new LinkedHashMap<String, String>();
+		result.put("cmd", "enable_adv_security");
+
+		String cmdXml = CmdXml.SET_ADV_XML;
+		String retXml = getRet(cmdXml); // send cmd and get returned data
+		xmlParser.parse(retXml); //parse result returned from stb;
+		String status = xmlParser.getValue("result");
+		if (status == "ok") {
+			result.put("statas", "pass");
+			processEvent(new MacWritingEvent(this, result));
+			return true;
+		} else { // if status == "failure"
+			result.put("statas", "fail");
+			result.put("err_info", xmlParser.getValue("error"));
+			processEvent(new MacWritingEvent(this, result));
+			return false;
+		}
+	} ///^ untested
+
   /** 
-   * compare Mac and SN with DB 
+   * compare Mac and SN with DB; 
    * to check if both and crc of each are validate;
-   * return true if all of those are validate, false if not
+   * return true if all of those are validate, false if not;
+	 * @param stbMac String
+	 * @param stbSN String
    */
   public boolean checkMacWithDB(String stbMac, String stbSN) { 
-    // uncomplete
-    HashMap<String, String> result = new HashMap<String, String>();
+    LinkedHashMap<String, String> result = new LinkedHashMap<String, String>();
+		result.put("cmd", "check_mac_with_DB");
 
-    String stbMacCRC = toCRC(stbMac);
+    String stbMacCRC = getCRC(stbMac);
     if (isValidate(stbSN, stbMac, stbMacCRC)) {
+			result.put("statas", "pass");
       processEvent(new MacWritingEvent(this, result));
       return true;
-    } else { 
+    } else {
+			result.put("statas", "fail");
       processEvent(new MacWritingEvent(this, result));
       return false;
-  }
+		}
+  } ///^ untested
 
   /**
-   * erase Mac and SN from STB,
+   * erase Mac and SN from STB;
    * if successfully erased, return true, else return false
    */
   public boolean eraseMac() {
     // unimplemented
-    HashMap<String, String> result = new HashMap<String, String>();
-    processEvent(new MacWritingEvent(this, result));
-    return true;
-  }
+    LinkedHashMap<String, String> result = new LinkedHashMap<String, String>();
+		result.put("cmd", "erase_mac");
+
+		LinkedHashMap<String, String> ret = getMac();
+		String mac = ret.get("mac"); // get mac for recirling before being erased
+		String sn = ret.get("sn");
+		result.put("stb_sn", sn); // record mac and sn
+		result.put("stb_mac", mac);
+		if (dbConnector.checkSN(sn) == "used") {
+			// inform DB to recircle mac mapping this sn
+			try {
+				dbConnector.validate("sn");
+			} catch (Exception ex) {
+				ex.printStackTrace();
+			}
+		}
+
+		// continue erasing even not successfully recircled; need to solve
+		String cmdXml = CmdXml.ERASE_XML;
+		String retXml = getRet(cmdXml);
+		xmlParser.parse(retXml);
+		String statas = xmlParser.getValue("result");
+		if (statas == "ok") {
+			result.put("statas", "pass");
+			processEvent(new MacWritingEvent(this, result));
+			return true;
+		} else {
+			result.put("statas", "fail");
+			processEvent(new MacWritingEvent(this, result));
+			return false;
+		}
+	} ///^ untested
   
   /**
    * get Mac and SN from STB;
    * retrun a map with values of Mac and SN
    */
-  public HashMap<String, String> getMac() {
+  public LinkedHashMap<String, String> getMac() {
     // unimplemented
-    HashMap<String, String> result = new HashMap<String, String>();
-    processEvent(new MacWritingEvent(this, result));
-    HashMap<String, String> map = null;
-    return map;
-  }
+    LinkedHashMap<String, String> result = new LinkedHashMap<String, String>();
+		result.put("cmd", "get_mac_from_stb");
+
+		// use an LinkedHashMap to receive returned sn and mac
+    LinkedHashMap<String, String> map = null;
+
+		String cmdXml = CmdXml.GET_XML;
+		String retXml = getRet(cmdXml);
+		xmlParser.parse(retXml);
+		if (xmlParser.getValue("sn") != null && 
+				xmlParser.getValue("mac") != null) {
+			String sn = xmlParser.getValue("sn");
+			String mac = xmlParser.getValue("mac");
+			map.put("sn", sn); 
+			map.put("mac", mac);
+			result.put("statas", "pass");
+			processEvent(new MacWritingEvent(this, result));
+		} else {
+			result.put("status", "fail");
+			processEvent(new MacWritingEvent(this, result));
+			return null;
+		}
+		return null;
+	} ///^ untested
 
   /**
    * write Mac and SN to SBT;
-   * return true if writing successfully
+	 * THE MOST IMPORTANT PART OF THE WHOLE TEST;
+   * return true if writing successfully;
+	 * arguments are passed in through UI's JTextField using barcode scanner;
+	 * @param mac String
+	 * @param sn String
    */
-  public boolean setMac(String Mac, String SN) {
+  public boolean setMac(String mac, String sn) {
     // unimplemented
-    HashMap<String, String> result = new HashMap<String, String>();
-    processEvent(new MacWritingEvent(this, result));
-    return true;
+    LinkedHashMap<String, String> result = new LinkedHashMap<String, String>();
+		result.put("cmd", "write_mac_to_stb");
+
+		String macCRC = getCRC(mac);
+		String snCRC = getCRC(sn);
+
+		if (checkMacWithDB(mac, sn)) {
+			String cmdXml = String.format(CmdXml.SET_XML, mac, macCRC, sn, snCRC);
+			String retXml = getRet(cmdXml);
+			xmlParser.parse(retXml);
+
+			if (xmlParser.getValue("result") == "ok") {
+				result.put("statas", "pass");
+				result.put("mac", mac);
+				result.put("mac_crc", macCRC);
+				result.put("sn", sn);
+				result.put("sn_crc", snCRC);
+				processEvent(new MacWritingEvent(this, result));
+				dbConnector.SNUsed(sn); // inform DB the sn has been successfully used
+				// rebootSTB() 
+				return true;
+			} else {
+				result.put("statas", "fail");
+				result.put("err_info", xmlParser.getValue("error"));
+				processEvent(new MacWritingEvent(this, result));
+				return false;
+			}
+		} //else : handled by UI
+
+		return false;
   }
 
   /**
-   * reboot SBT
+   * reboot STB 
    */
-  public boolean reboot() {
+  public boolean rebootSTB() {
     // unimplemented
-    HashMap<String, String> result = new HashMap<String, String>();
+    LinkedHashMap<String, String> result = new LinkedHashMap<String, String>();
     processEvent(new MacWritingEvent(this, result));
     return true;
   }
@@ -119,7 +236,7 @@ public class MacWriter {
    * else return warning message
    */
   public String getRet(String cmdXml) {
-    HashMap<String, String> result = new HashMap<String, String>();
+    LinkedHashMap<String, String> result = new LinkedHashMap<String, String>();
     String cmd = "connect_to_SBT";
     int retry = 0; //record retry times;
     DatagramPacket dp = new DatagramPacket(cmdXml.getBytes(),
@@ -149,18 +266,19 @@ public class MacWriter {
   }
   
   public boolean isValidate(String sn, String stbMac, String stbMacCRC) {
-    HashMap<String, String> result = new HashMap<String, String>();
+    LinkedHashMap<String, String> result = new LinkedHashMap<String, String>();
     result.put("cmd", "connect_to_DB");
     try {
-      if (connector.checkSN(sn) == "validate") {
-        String mac = connector.getMac(sn);
-        String macCRC = connector.getMacCRC(sn);
+      if (dbConnector.checkSN(sn) == "validate") { //check by UI;not neccesary
+        String mac = dbConnector.getMac(sn);
+        String macCRC = dbConnector.getMacCRC(sn);
         result.put("statas", "pass");
         processEvent(new MacWritingEvent(this, result));
-        if (mac == stbMac && macCRC = stbMacCRC) {
+        if (mac == stbMac && macCRC == stbMacCRC) {
           return true;
         } else {
-          HashMap<String, String> map = new HashMap<String, String>();
+          LinkedHashMap<String, String> map = 
+						new LinkedHashMap<String, String>();
           map.put("cmd", "check_mac_with_DB");
           map.put("status", "fail");
           map.put("stb_sn", sn);
@@ -172,15 +290,32 @@ public class MacWriter {
           
           return false;
         }
+			}
     } catch (Exception ex) {
       ex.printStackTrace();
       result.put("statas", "fail");
       processEvent(new MacWritingEvent(this, result));
     }
-
-    return false;
+		return false;
   }
 
+	/**
+	 * this method acctually will function before the test starts,
+	 * and the UI will called a similar method to make sure the input sn
+	 * is validate; 
+	 * this class call this method to insure the sn and mac be revalidated
+	 * before they are erased;
+	 * @param sn String
+	 */
+	public String checkSN(String sn) { // return a String to stand for -
+		return dbConnector.checkSN(sn);			 // the status of the SN: -
+	}															// either "used" or "validate" or "invalidate" 
+
+
+	/** get a string's crc */
+	public String getCRC(String mac) { // unimplemented
+		return "unimplemented";
+	}
 
   /** add a listener */
   public void addMacWritingListener(MacWritingListener listener) {

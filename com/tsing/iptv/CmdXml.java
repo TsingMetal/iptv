@@ -2,7 +2,7 @@ package com.tsing.iptv;
 
 public interface CmdXml {
 
-  public static String SETXML = 
+  public static String SET_XML = 
     "<?xml version='1.0' encoding='UTF-8'?>" +  
     "<msg>" + 
     "<pwd>ff2234asdxcn2s34</pwd>" + 
@@ -23,7 +23,7 @@ public interface CmdXml {
     "<sender>pc</sender>" +
     "</msg>";
 
-  public static String GETXML = 
+  public static String GET_XML = 
     "<?xml version='1.0' encoding='UTF-8'?>" +
     "<msg>" +
     "<pwd>ff2234asdxcn2s34</pwd>" +
@@ -32,7 +32,7 @@ public interface CmdXml {
     "<sender>pc</sender>" +
     "</msg>"; 
   
-  public static String ERASEXML = 
+  public static String ERASE_XML = 
     "<?xml version='1.0' encoding='UTF-8'?>" +
     "<msg>" +
     "<pwd>ff2234asdxcn2s34</pwd>" +
@@ -41,7 +41,7 @@ public interface CmdXml {
     "<sn></sn>" +
     "</msg>"; 
 
-  public static String REBOOTXML = 
+  public static String REBOOT_XML = 
     "<?xml version='1.0' encoding='UTF-8'?>" +
     "<msg>" +
     "<pwd>ff2234asdxcn2s34</pwd>" +
@@ -49,7 +49,7 @@ public interface CmdXml {
     "<stb>reboot</stb>" +
     "</msg>"; 
     
-  public static String GETADVXML = 
+  public static String CHECK_ADV_XML = 
     "<?xml version='1.0' encoding='UTF-8'?>" +
     "<msg>" +
     "<pwd>ff2234asdxcn2s34</pwd>" +
@@ -57,7 +57,7 @@ public interface CmdXml {
     "<list>adv_security</list>" +
     "</msg>"; 
 
-  public static String SETADCXML = 
+  public static String SET_ADV_XML = 
     "<?xml version='1.0' encoding='UTF-8'?>" +
     "<msg>" +
     "<pwd>ff2234asdxcn2s34</pwd>" +

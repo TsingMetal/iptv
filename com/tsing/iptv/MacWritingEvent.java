@@ -53,4 +53,8 @@ public class MacWritingEvent extends java.util.EventObject {
     return result.containsKey("ret_xml")?
       result.get("ret_xml") : "N/A";
   }
+
+	public HashMap<String, String> getResultMap() {
+		return result;
+	}
 }

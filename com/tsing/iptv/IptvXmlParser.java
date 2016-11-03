@@ -10,15 +10,9 @@ import java.util.List;
 public class IptvXmlParser implements XmlParser {
   
   private Document document;
-  private String strXML;
   
-  /** 
-   * initialize document
-   * @param strXML a String
-   */
-  public IptvXmlParser(String strXML) {
-    this.strXML = strXML;
-    parse(strXML);
+  /** initialize document */
+  public IptvXmlParser() {
   }
 
   /** initialize document here */
