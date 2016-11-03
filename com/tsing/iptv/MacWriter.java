@@ -55,11 +55,17 @@ public class MacWriter {
    * to check if both and crc of each are validate;
    * return true if all of those are validate, false if not
    */
-  public boolean checkMacWithDB(String stbMac, String stbSN) {
-    // unimplemented
+  public boolean checkMacWithDB(String stbMac, String stbSN) { 
+    // uncomplete
     HashMap<String, String> result = new HashMap<String, String>();
-    processEvent(new MacWritingEvent(this, result));
-    return true;
+
+    String stbMacCRC = toCRC(stbMac);
+    if (isValidate(stbSN, stbMac, stbMacCRC)) {
+      processEvent(new MacWritingEvent(this, result));
+      return true;
+    } else { 
+      processEvent(new MacWritingEvent(this, result));
+      return false;
   }
 
   /**
@@ -142,6 +148,40 @@ public class MacWriter {
     return null;
   }
   
+  public boolean isValidate(String sn, String stbMac, String stbMacCRC) {
+    HashMap<String, String> result = new HashMap<String, String>();
+    result.put("cmd", "connect_to_DB");
+    try {
+      if (connector.checkSN(sn) == "validate") {
+        String mac = connector.getMac(sn);
+        String macCRC = connector.getMacCRC(sn);
+        result.put("statas", "pass");
+        processEvent(new MacWritingEvent(this, result));
+        if (mac == stbMac && macCRC = stbMacCRC) {
+          return true;
+        } else {
+          HashMap<String, String> map = new HashMap<String, String>();
+          map.put("cmd", "check_mac_with_DB");
+          map.put("status", "fail");
+          map.put("stb_sn", sn);
+          map.put("stb_mac", stbMac);
+          map.put("db_mac", mac);
+          map.put("stb_mac_crc", stbMacCRC);
+          map.put("db_mac_crc", macCRC);
+          processEvent(new MacWritingEvent(this, map));
+          
+          return false;
+        }
+    } catch (Exception ex) {
+      ex.printStackTrace();
+      result.put("statas", "fail");
+      processEvent(new MacWritingEvent(this, result));
+    }
+
+    return false;
+  }
+
+
   /** add a listener */
   public void addMacWritingListener(MacWritingListener listener) {
     if (listenerList == null)

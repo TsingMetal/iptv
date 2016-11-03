@@ -1,11 +1,14 @@
 package com.tsing.iptv;
 
-public interface DBConnector extends MacWritingListener{
+public interface DBConnector {
 
-  @Override
-  public void MacWritingPerformed(MacWritingEvent e);
+  public String checkSN(String sn);
 
-  public String getMac(String Sn);
+  public String getMac(String sn);
 
-  public String getMacCrc(String Sn);
+  public String getMacCRC(String sn);
+
+  public int SNUsed(String sn);
+
+  public boolean validate(String sn);
 }
