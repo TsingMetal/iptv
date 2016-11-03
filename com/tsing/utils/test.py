@@ -22,7 +22,7 @@ if __name__ == '__main__':
   <msg>
   <pwd>ff2234asdxcn2s34</pwd>
   <cmd>get</cmd>
-  <list>sn,mac </list>
+  <list>sn,mac</list>
   <sender>pc</sender>
   </msg>
   '''
