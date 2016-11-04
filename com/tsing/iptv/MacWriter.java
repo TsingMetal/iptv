@@ -11,9 +11,13 @@ import java.util.ArrayList;
  * 2, erase Mac and SN from STB and 
  * 3, write Mac and SN to STB and 
  * 4, others
+ * all FAIL information will be kept by Logger;
+ * and Logger only concerns WRITE PASS infomation among other pass infomations
+ * ALMOST ALL test information(pass or fail) will keep UI updated
  * @author Tsing
  */ 
 public class MacWriter {
+  boolean restorationMode = false; // default MP mode;
 
   public static final int STBPORT = 1300; // STB port
   public static final int RECVPORT = 1301; // local port for receiving data
@@ -40,7 +44,23 @@ public class MacWriter {
       ex.printStackTrace();
     }
   }
-  
+
+  /**
+   * change mode if restoration mode needed;
+   * @param mode boolean
+   */
+  public void setMode(boolean mode) {
+    LinkedHashMap<String, String> result = new LinkedHashMap<String, String>();
+    result.put("cmd", "set_mode");
+    processEvent(new MacWritingEvent(this, result));
+    restorationMode = mode;
+  }
+
+  /** return mode to check if in restoration or MP */
+  public boolean getMode() {
+    return restorationMode;
+  }
+
   /**
    * check advanced sercurity before testing
    */
@@ -70,7 +90,7 @@ public class MacWriter {
 
 		String cmdXml = CmdXml.SET_ADV_XML;
 		String retXml = getRet(cmdXml); // send cmd and get returned data
-		xmlParser.parse(retXml); //parse result returned from stb;
+		xmlParser.parse(retXml); // parse result returned from stb;
 		String status = xmlParser.getValue("result");
 		if (status == "ok") {
 			result.put("statas", "pass");
@@ -112,25 +132,28 @@ public class MacWriter {
    * if successfully erased, return true, else return false
    */
   public boolean eraseMac() {
-    // unimplemented
     LinkedHashMap<String, String> result = new LinkedHashMap<String, String>();
-		result.put("cmd", "erase_mac");
+    result.put("cmd", "erase_mac");
 
-		LinkedHashMap<String, String> ret = getMac();
-		String mac = ret.get("mac"); // get mac for recirling before being erased
-		String sn = ret.get("sn");
-		result.put("stb_sn", sn); // record mac and sn
-		result.put("stb_mac", mac);
-		if (dbConnector.checkSN(sn) == "used") {
-			// inform DB to recircle mac mapping this sn
-			try {
-				dbConnector.validate("sn");
-			} catch (Exception ex) {
-				ex.printStackTrace();
-			}
-		}
+    //---- in restoration mode
+    if (restorationMode) {
+      LinkedHashMap<String, String> ret = getMac();
+      String mac = ret.get("mac"); // get mac for recirling before being erased
+      String sn = ret.get("sn");
+      result.put("stb_sn", sn); // record mac and sn
+      result.put("stb_mac", mac);
+      if (dbConnector.checkSN(sn) == "used") {
+        // inform DB to recircle mac mapping this sn
+        try {
+          dbConnector.validate("sn");
+        } catch (Exception ex) {
+          ex.printStackTrace();
+        }
+      }
+    }
+    //----
 
-		// continue erasing even not successfully recircled; need to solve
+		// erase even not successfully recircled; need to solve
 		String cmdXml = CmdXml.ERASE_XML;
 		String retXml = getRet(cmdXml);
 		xmlParser.parse(retXml);
@@ -308,7 +331,7 @@ public class MacWriter {
 	 * @param sn String
 	 */
 	public String checkSN(String sn) { // return a String to stand for -
-		return dbConnector.checkSN(sn);			 // the status of the SN: -
+		return dbConnector.checkSN(sn);	 // the status of the SN: -
 	}															// either "used" or "validate" or "invalidate" 
 
 
