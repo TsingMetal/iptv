@@ -1,7 +1,7 @@
 package com.tsing.iptv;
 
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 
 public interface Logger extends MacWritingListener {
-  public void log(HashMap<String, String> result);
+  public void log(LinkedHashMap<String, String> result);
 }
