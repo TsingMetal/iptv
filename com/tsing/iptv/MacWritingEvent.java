@@ -1,14 +1,14 @@
 package com.tsing.iptv;
 
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 
 public class MacWritingEvent extends java.util.EventObject {
 
-  // use an HashMap to record data MacWritingListeners need:
-  HashMap<String, String> result = new HashMap<String, String>();
+  // use an LinkedHashMap to record data MacWritingListeners need:
+  LinkedHashMap<String, String> result = new LinkedHashMap<String, String>();
   
   public MacWritingEvent(Object source,
-      HashMap<String, String> map)
+      LinkedHashMap<String, String> map)
   {
     super(source);
     this.result = map;
@@ -54,7 +54,7 @@ public class MacWritingEvent extends java.util.EventObject {
       result.get("ret_xml") : "N/A";
   }
 
-	public HashMap<String, String> getResultMap() {
+	public LinkedHashMap<String, String> getResultMap() {
 		return result;
 	}
 }

@@ -201,7 +201,7 @@ public class MacWriter {
 	} ///^ untested
 
   /**
-   * write Mac and SN to SBT;
+   * write Mac and SN to STB;
 	 * THE MOST IMPORTANT PART OF THE WHOLE TEST;
    * return true if writing successfully;
 	 * arguments are passed in through UI's JTextField using barcode scanner;
@@ -260,8 +260,10 @@ public class MacWriter {
    */
   public String getRet(String cmdXml) {
     LinkedHashMap<String, String> result = new LinkedHashMap<String, String>();
-    String cmd = "connect_to_SBT";
+    // sapces ares intended here and will be trimed when logging:
+    result.put("cmd", "   connect_to_stb");
     int retry = 0; //record retry times;
+
     DatagramPacket dp = new DatagramPacket(cmdXml.getBytes(),
        cmdXml.length(), ADDR, STBPORT);
     for (int i = 0; i < 5; i++) { // if fails, retry 5 times
@@ -274,19 +276,23 @@ public class MacWriter {
         DatagramPacket recvDp = new DatagramPacket(buff, 1024);
         socket.receive(recvDp);
         String ret = new String(buff);
+        result.put("ret_xml", ret);
+        result.put("status", "pass");
         processEvent(new MacWritingEvent(this, result));
         return ret;
       } catch (Exception ex) {
         ex.printStackTrace();
         retry += 1;
         System.out.println("retry+" + retry); // for debugging
-        result.put("retry", new Integer(retry).toString());
+        result.put("status", "retry+"+new Integer(retry).toString());
         processEvent(new MacWritingEvent(this, result));
       }
-    } ///~ tested OK; date: Wed  2 Nov 08:40:17 CST 2016
+    } 
 
+    result.put("statas", "fail");
+    processEvent(new MacWritingEvent(this, result));
     return null;
-  }
+  }///~ tested OK; date: Wed  2 Nov 08:40:17 CST 2016
   
   public boolean isValidate(String sn, String stbMac, String stbMacCRC) {
     LinkedHashMap<String, String> result = new LinkedHashMap<String, String>();
@@ -360,6 +366,6 @@ public class MacWriter {
     }
 
     for (MacWritingListener listener : listeners)
-      listener.MacWritingPerformed(e);
+      listener.macWritingPerformed(e);
   }
 }
