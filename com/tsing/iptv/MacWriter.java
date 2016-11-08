@@ -4,8 +4,10 @@ import java.net.*;
 import java.util.LinkedHashMap;
 import java.util.ArrayList;
 
+import com.tsing.util.CRC16;
+
 /**
- * compile OK : 2016年 11月 04日 星期五 00:15:43 CST
+ * compile OK : 2016 11 04 Fri 00:15:43 CST
  * provide functions to:
  * 1, check Mac and SN with database and STB,
  * 2, erase Mac and SN from STB and 
@@ -17,7 +19,7 @@ import java.util.ArrayList;
  * @author Tsing
  */ 
 public class MacWriter {
-  boolean restorationMode = false; // default MP mode;
+  boolean repairMode = false; // default MP mode;
 
   public static final int STBPORT = 1300; // STB port
   public static final int RECVPORT = 1301; // local port for receiving data
@@ -46,19 +48,21 @@ public class MacWriter {
   }
 
   /**
-   * change mode if restoration mode needed;
+   * change mode if respair mode needed;
    * @param mode boolean
    */
-  public void setMode(boolean mode) {
+  public void setRepairMode(boolean bool) {
     LinkedHashMap<String, String> result = new LinkedHashMap<String, String>();
+    repairMode = bool;
     result.put("cmd", "set_mode");
+    result.put("status", "repairMode=" + new Boolean(bool).toString());
     processEvent(new MacWritingEvent(this, result));
-    restorationMode = mode;
+    
   }
 
-  /** return mode to check if in restoration or MP */
-  public boolean getMode() {
-    return restorationMode;
+  /** return mode to check if in repair or MP */
+  public boolean isRepairMode() {
+    return repairMode;
   }
 
   /**
@@ -135,8 +139,8 @@ public class MacWriter {
     LinkedHashMap<String, String> result = new LinkedHashMap<String, String>();
     result.put("cmd", "erase_mac");
 
-    //---- in restoration mode
-    if (restorationMode) {
+    //---- in repair mode
+    if (repairMode) {
       LinkedHashMap<String, String> ret = getMac();
       String mac = ret.get("mac"); // get mac for recirling before being erased
       String sn = ret.get("sn");
@@ -342,8 +346,8 @@ public class MacWriter {
 
 
 	/** get a string's crc */
-	public String getCRC(String mac) { // unimplemented
-		return "unimplemented";
+	public String getCRC(String str) { 
+		return CRC16.getCRC(str);
 	}
 
   /** add a listener */
@@ -353,9 +357,7 @@ public class MacWriter {
         new ArrayList<MacWritingListener>(3); // allow 3 listeners
     listenerList.add(listener);
   }
-
-  // method for remove listeners omitted here
-
+  
   /** fire Event */
   private void processEvent(MacWritingEvent e) {
     ArrayList<MacWritingListener> listeners;

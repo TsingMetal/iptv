@@ -12,7 +12,7 @@ public class CRC16 {
 		public int CRC16(byte[] data, int length);
 	}
 
-  public String getCRC(String str) {
+  public static String getCRC(String str) {
     byte[] data = str.getBytes();
     int num = Iptv_CRC16.INSTANCE.CRC16(data, data.length);
     return Integer.toHexString(num);
