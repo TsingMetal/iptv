@@ -76,7 +76,7 @@ public class MacWriter {
 		String retXml = getRet(cmdXml); // send request to stb and get result
 		xmlParser.parse(retXml);  // parse result returned from stb;
 		String advSecurity = xmlParser.getValue("adv_security"); // get value
-		if (advSecurity == "enable") {
+		if (advSecurity.equals("enable")) {
 			result.put("status", "pass");
 			processEvent(new MacWritingEvent(this, result));
 			return true;
@@ -96,11 +96,11 @@ public class MacWriter {
 		String retXml = getRet(cmdXml); // send cmd and get returned data
 		xmlParser.parse(retXml); // parse result returned from stb;
 		String status = xmlParser.getValue("result");
-		if (status == "ok") {
+		if (status.equals("ok")) {
 			result.put("statas", "pass");
 			processEvent(new MacWritingEvent(this, result));
 			return true;
-		} else { // if status == "failure"
+		} else { // if status.equals("failure")
 			result.put("statas", "fail");
 			result.put("err_info", xmlParser.getValue("error"));
 			processEvent(new MacWritingEvent(this, result));
@@ -141,12 +141,13 @@ public class MacWriter {
 
     //---- in repair mode
     if (repairMode) {
+      System.out.println("repairMode");
       LinkedHashMap<String, String> ret = getMac();
       String mac = ret.get("mac"); // get mac for recirling before being erased
       String sn = ret.get("sn");
       result.put("stb_sn", sn); // record mac and sn
       result.put("stb_mac", mac);
-      if (dbConnector.checkSN(sn) == "used") {
+      if (dbConnector.checkSN(sn).equals("used")) {
         // inform DB to recircle mac mapping this sn
         try {
           dbConnector.validate("sn");
@@ -162,7 +163,7 @@ public class MacWriter {
 		String retXml = getRet(cmdXml);
 		xmlParser.parse(retXml);
 		String statas = xmlParser.getValue("result");
-		if (statas == "ok") {
+		if (statas.equals("ok")) {
 			result.put("statas", "pass");
 			processEvent(new MacWritingEvent(this, result));
 			return true;
@@ -225,7 +226,7 @@ public class MacWriter {
 			String retXml = getRet(cmdXml);
 			xmlParser.parse(retXml);
 
-			if (xmlParser.getValue("result") == "ok") {
+			if (xmlParser.getValue("result").equals("ok")) {
 				result.put("statas", "pass");
 				result.put("mac", mac);
 				result.put("mac_crc", macCRC);
@@ -302,12 +303,11 @@ public class MacWriter {
     LinkedHashMap<String, String> result = new LinkedHashMap<String, String>();
     result.put("cmd", "connect_to_DB");
     try {
-      if (dbConnector.checkSN(sn) == "validate") { //check by UI;not neccesary
+      if (dbConnector.checkSN(sn).equals("valid")) { //check by UI;not neccesary
         String mac = dbConnector.getMac(sn);
-        String macCRC = dbConnector.getMacCRC(sn);
         result.put("statas", "pass");
         processEvent(new MacWritingEvent(this, result));
-        if (mac == stbMac && macCRC == stbMacCRC) {
+        if (mac.equals(stbMac)) {
           return true;
         } else {
           LinkedHashMap<String, String> map = 
@@ -317,8 +317,6 @@ public class MacWriter {
           map.put("stb_sn", sn);
           map.put("stb_mac", stbMac);
           map.put("db_mac", mac);
-          map.put("stb_mac_crc", stbMacCRC);
-          map.put("db_mac_crc", macCRC);
           processEvent(new MacWritingEvent(this, map));
           
           return false;

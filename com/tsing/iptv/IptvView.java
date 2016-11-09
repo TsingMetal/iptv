@@ -34,7 +34,9 @@ public class IptvView extends JFrame implements ViewInterface {
     macWriter.addMacWritingListener(this); // register IptvView with macWriter
     macWriter.addMacWritingListener(logger); // register logger with macWriter
 		
-    setUI();
+    EventQueue.invokeLater(() -> {
+      setUI();
+    });
   }
 
   private void setUI() {
@@ -74,13 +76,13 @@ public class IptvView extends JFrame implements ViewInterface {
     retArea.setLineWrap(true);
     retArea.setVisible(false); // default not show retArea;
 
-		JLabel statusLabel = new JLabel("PASS", SwingConstants.CENTER);
-		statusLabel.setFont(new Font("Serif", Font.BOLD, 48));
-		statusLabel.setForeground(Color.GREEN);
+		resultLabel = new JLabel("PASS", SwingConstants.CENTER);
+		resultLabel.setFont(new Font("Serif", Font.BOLD, 48));
+		resultLabel.setForeground(Color.GREEN);
 
 		JScrollPane scrollPane = new JScrollPane(infoArea);
     panel.add(scrollPane, BorderLayout.CENTER);
-		panel.add(statusLabel, BorderLayout.SOUTH);
+		panel.add(resultLabel, BorderLayout.SOUTH);
     panel.add(retArea, BorderLayout.NORTH);
 
     add(panel, BorderLayout.CENTER);  // add panel to frame
@@ -89,51 +91,67 @@ public class IptvView extends JFrame implements ViewInterface {
   private void setToolBar() {
     // set toolbar:
     toolBar = new JToolBar();
-    toolBar.setBorder(BorderFactory.createLineBorder(Color.CYAN, 2));
+    toolBar.setBorder(BorderFactory.createLineBorder(Color.BLUE, 2));
     toolBar.setEnabled(false);
     toolBar.setVisible(false);
     
-	JButton getButton = new JButton("Get Mac");
+    JButton getButton = new JButton("Get Mac");
     getButton.setToolTipText("get SN and Mac from STB");
     getButton.addActionListener(event -> {
       macWriter.getMac();
     });
-	toolBar.add(getButton);
+    toolBar.add(getButton);
 
     JButton getAdvButton = new JButton("Get Adv");
     getAdvButton.setToolTipText("get adv-security from STB");
     getAdvButton.addActionListener(event -> {
       macWriter.checkAdv();
     });
-	toolBar.add(getAdvButton);
+    toolBar.add(getAdvButton);
 
     JButton setAdvButton = new JButton("Enable Adv");
     setAdvButton.setToolTipText("Enable adv-security");
     setAdvButton.addActionListener(event -> {
       macWriter.setAdv();
     });
-	toolBar.add(setAdvButton);
+    toolBar.add(setAdvButton);
 
     JButton setButton = new JButton("Set Mac");
     setButton.setToolTipText("Write Mac and SN to STB");
     setButton.addActionListener(event -> {
       // unimplemented
     });
-	toolBar.add(setButton);
+    toolBar.add(setButton);
 
     JButton eraseButton = new JButton("Erase Mac");
     eraseButton.setToolTipText("Erase mac from STB");
-    setButton.addActionListener(event -> {
+    eraseButton.addActionListener(event -> {
       macWriter.eraseMac();
     });
-	toolBar.add(eraseButton);
+    toolBar.add(eraseButton);
 
     JButton rebootSTBButton = new JButton("Reboot STB");
     rebootSTBButton.setToolTipText("Reboot STB");
     rebootSTBButton.addActionListener(event -> {
       macWriter.rebootSTB();
     });
-	toolBar.add(rebootSTBButton);
+    toolBar.add(rebootSTBButton);
+
+    toolBar.addSeparator();
+
+    JCheckBox showRetArea = new JCheckBox("Show Ret");
+    showRetArea.setToolTipText("Show XML String returned by STB");
+    showRetArea.addActionListener(event -> {
+      retArea.setVisible(showRetArea.isSelected());
+    });
+    toolBar.add(showRetArea);
+
+    JCheckBox showInputDialog = new JCheckBox("Show Input Dialog");
+    showInputDialog.setToolTipText("Display the SN and Mac input dialog");
+    showInputDialog.addActionListener(event -> {
+      inputDialog.setVisible(showInputDialog.isSelected());
+    });
+    toolBar.add(showInputDialog);
 
     add(toolBar, BorderLayout.NORTH); //add toolbar to frame
   }
@@ -146,61 +164,46 @@ public class IptvView extends JFrame implements ViewInterface {
     JRadioButtonMenuItem repairMode = 
       new JRadioButtonMenuItem("Restoration Mode");
     repairMode.addActionListener(event -> {
-      String password = JOptionPane.showInputDialog(menuBar,
-          "Enter password to authenrize yourself:");
-      if (password.equals("tsing")) { 
-        macWriter.setRepairMode(repairMode.isSelected());
-	  } else {
-        JOptionPane.showMessageDialog(this, "Wrong password!");
-		repairMode.setSelected(false);
-		macWriter.setRepairMode(false);
-	  }
+      if (repairMode.isSelected()) {
+        String password = JOptionPane.showInputDialog(menuBar,
+            "Enter password to authenrize yourself:");
+        if (password.equals("tsing")) { 
+          macWriter.setRepairMode(repairMode.isSelected());
+          toolBar.setVisible(macWriter.isRepairMode());
+        } else {
+          JOptionPane.showMessageDialog(this, "Wrong password!");
+          repairMode.setSelected(false);
+          macWriter.setRepairMode(false);
+        }
+      } else {
+        macWriter.setRepairMode(false);
+        toolBar.setVisible(false);
+      }
     });
 
     JMenuItem exitItem = new JMenuItem("Exit");
     exitItem.addActionListener(event -> System.exit(0));
 
-    JRadioButtonMenuItem engineerMode = 
-		new JRadioButtonMenuItem("Engineer");
-    engineerMode.addActionListener(event -> {
-      String password =  JOptionPane.showInputDialog(menuBar, 
-          "Enter password ot enter engineer mode:");
-      if (password.equals("tsing")) {
-        toolBar.setEnabled(engineerMode.isSelected());
-      } else {
-        JOptionPane.showMessageDialog(this, "Wrong password!");
-		engineerMode.setSelected(false);
-		toolBar.setEnabled(false);
-      }
-    });
-
     operationMenu.add(repairMode);
-    operationMenu.add(engineerMode);
-	operationMenu.addSeparator();
-	operationMenu.add(exitItem);
+    operationMenu.addSeparator();
+    operationMenu.add(exitItem);
 
     // set Setting Menu
     JMenu settingMenu = new JMenu("Setting");
-    JRadioButtonMenuItem onTop = new JRadioButtonMenuItem("OnTop");
+    JCheckBoxMenuItem onTop = new JCheckBoxMenuItem("OnTop");
     onTop.addActionListener(event -> {
       setAlwaysOnTop(onTop.isSelected());
     });
 
-    JRadioButtonMenuItem showRetArea = 
-      new JRadioButtonMenuItem("Show Ret Area");
+    JCheckBoxMenuItem showRetArea = 
+      new JCheckBoxMenuItem("Show Ret Area");
     showRetArea.addActionListener(event -> {
       retArea.setVisible(showRetArea.isSelected());
     });
 
-    JRadioButtonMenuItem showToolBar = 
-      new JRadioButtonMenuItem("Show Toolbar"); 
-    showToolBar.addActionListener(event -> {
-      toolBar.setVisible(showToolBar.isSelected());
-    });
 
     settingMenu.add(onTop);
     settingMenu.add(showRetArea);
-	settingMenu.add(showToolBar);
     
     //set Help menu
     JMenu helpMenu = new JMenu("Help");
@@ -225,8 +228,45 @@ public class IptvView extends JFrame implements ViewInterface {
   }
 
 	public void macWritingPerformed(MacWritingEvent e) {
-    // unimplemented yet
-	}
+    String cmd = e.getCmd();
+    String status = e.getStatus();
+    showInfo(cmd, status);
+
+    if ((cmd.equals("write_mac_to_stb") && e.getStatus().equals("pass")) 
+        || status.equals("fail"))
+    {
+      if (status.equals("pass")) {
+        resultLabel.setForeground(Color.GREEN);
+      } else {
+        resultLabel.setForeground(Color.RED);
+      }
+      resultLabel.setText(status);
+      
+      snField.requestFocus(true);
+      snField.setBorder(BorderFactory.createLineBorder(Color.RED, 5));
+      macField.setBorder(null);
+      snField.setText("");
+      macField.setText("");
+    }
+  }
+
+  private void showInfo(String cmd, String status) {
+    String info = String.format("\n%s\t\t%s\n", cmd, status);
+    Document doc = infoArea.getDocument();
+    SimpleAttributeSet attrSet = new SimpleAttributeSet();
+    try {
+      if (status.equals("pass")) {
+        StyleConstants.setForeground(attrSet, Color.GREEN);
+      } else if (status.equals("fail")) {
+        StyleConstants.setForeground(attrSet, Color.RED);
+      } else {
+        StyleConstants.setForeground(attrSet, Color.YELLOW);
+      }
+      doc.insertString(doc.getLength(), info, attrSet);
+    } catch (Exception ex) {
+      ex.printStackTrace();
+    }
+  }
 
 	public class InputDialog extends JDialog {
 
@@ -260,9 +300,7 @@ public class IptvView extends JFrame implements ViewInterface {
 			this.pack();
 			
 			snField.addActionListener(new SnListener());
-			/*
 			macField.addActionListener(new MacListener());
-			*/
 		}
 
 		class SnListener implements ActionListener {
@@ -272,19 +310,67 @@ public class IptvView extends JFrame implements ViewInterface {
 			public void actionPerformed(ActionEvent e) {
 				sn = snField.getText().trim();
 
-				if (sn == null || sn.length() < 25) {
+				if (sn == null || sn.length() < 20) {
 					JOptionPane.showMessageDialog(InputDialog.this,
-							"Invalidate SN, please Check!",
+							"Invalid SN, please check!",
 							"Wrong SN",
 							JOptionPane.WARNING_MESSAGE);
 					return;
 				}
 
+        snField.setBorder(BorderFactory.createLineBorder(Color.GREEN, 5));
 				macField.setFocusable(true);
 				macField.requestFocus(true);
+        macField.setBorder(BorderFactory.createLineBorder(Color.RED, 5));
 			}
 		}
-	}
+
+    class MacListener implements ActionListener {
+      String sn;
+      String mac;
+      public void actionPerformed(ActionEvent e) { 
+        sn = snField.getText();
+        mac = macField.getText().trim();
+
+        if (mac == null || mac.length() < 12) {
+          JOptionPane.showMessageDialog(InputDialog.this,
+              "Invalid Mac, please check!",
+              "Wrong Mac",
+              JOptionPane.WARNING_MESSAGE);
+          return;
+        } // else { not implemented yet } 
+
+        macField.setBorder(BorderFactory.createLineBorder(Color.GREEN, 5));
+        
+        // clear JTextPane if the text length exceeds 20000;
+        // not efficient becouse of the need to check per circle;
+        Document doc = infoArea.getDocument();
+        if (doc.getLength() > 20000) 
+          infoArea.setText("");
+
+        resultLabel.setForeground(Color.BLUE);
+        resultLabel.setText("Testing...");
+        
+        WriteThread thread = new WriteThread(mac, sn);
+        Thread writeThread = new Thread(thread);
+        writeThread.start();
+      }
+    }
+
+    class WriteThread implements Runnable {
+      String mac;
+      String sn;
+
+      public WriteThread(String mac, String sn) {
+        this.mac = mac;
+        this.sn = sn;
+      }
+
+      public void run() {
+        macWriter.setMac(mac, sn);
+      }
+    }
+  }
 
 	public static void main(String[] args) {
 		IptvView view = new IptvView();
