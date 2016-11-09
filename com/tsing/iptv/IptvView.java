@@ -17,16 +17,15 @@ public class IptvView extends JFrame implements ViewInterface {
 
   private JToolBar toolBar;
 
-  // MacWriter macWriter;
+  MacWriter macWriter;
   XmlParser xmlParser;
   Logger logger;
   DBConnector dbConnector;
   XmlWriter xmlWriter;
 
   public IptvView() {
-		/*
-    xmlParser = IptvXmlParser(); // initialize xmlParser 
-    dbConnector = new DBConnector(); //~~ DBConnector unimplemented yet 
+    xmlParser = new IptvXmlParser(); // initialize xmlParser 
+    // dbConnector = new DBConnector(); //~~ DBConnector unimplemented yet 
     macWriter = new MacWriter(xmlParser, dbConnector); // initialize macWriter
     
     xmlWriter = new IptvXmlWriter(); //initialize xmlWriter 
@@ -34,7 +33,6 @@ public class IptvView extends JFrame implements ViewInterface {
 
     macWriter.addMacWritingListener(this); // register IptvView with macWriter
     macWriter.addMacWritingListener(logger); // register logger with macWriter
-		*/
 		
     setUI();
   }
@@ -93,36 +91,49 @@ public class IptvView extends JFrame implements ViewInterface {
     toolBar = new JToolBar();
     toolBar.setBorder(BorderFactory.createLineBorder(Color.CYAN, 2));
     toolBar.setEnabled(false);
-    JButton getButton = new JButton("Get Mac");
-    getButton.setToolTip("get SN and Mac from STB");
+    toolBar.setVisible(false);
+    
+	JButton getButton = new JButton("Get Mac");
+    getButton.setToolTipText("get SN and Mac from STB");
     getButton.addActionListener(event -> {
       macWriter.getMac();
     });
+	toolBar.add(getButton);
+
     JButton getAdvButton = new JButton("Get Adv");
-    getAdvButton.setToolTip("get adv-security from STB");
+    getAdvButton.setToolTipText("get adv-security from STB");
     getAdvButton.addActionListener(event -> {
       macWriter.checkAdv();
     });
+	toolBar.add(getAdvButton);
+
     JButton setAdvButton = new JButton("Enable Adv");
-    setAdvButton.setToolTip("Enable adv-security");
+    setAdvButton.setToolTipText("Enable adv-security");
     setAdvButton.addActionListener(event -> {
       macWriter.setAdv();
     });
+	toolBar.add(setAdvButton);
+
     JButton setButton = new JButton("Set Mac");
-    setButton.setToolTip("Write Mac and SN to STB");
+    setButton.setToolTipText("Write Mac and SN to STB");
     setButton.addActionListener(event -> {
       // unimplemented
     });
+	toolBar.add(setButton);
+
     JButton eraseButton = new JButton("Erase Mac");
-    eraseButton.setToolTip("Erase mac from STB");
+    eraseButton.setToolTipText("Erase mac from STB");
     setButton.addActionListener(event -> {
       macWriter.eraseMac();
     });
+	toolBar.add(eraseButton);
+
     JButton rebootSTBButton = new JButton("Reboot STB");
-    rebootSTBButton.setToolTip("Reboot STB");
+    rebootSTBButton.setToolTipText("Reboot STB");
     rebootSTBButton.addActionListener(event -> {
       macWriter.rebootSTB();
     });
+	toolBar.add(rebootSTBButton);
 
     add(toolBar, BorderLayout.NORTH); //add toolbar to frame
   }
@@ -135,37 +146,44 @@ public class IptvView extends JFrame implements ViewInterface {
     JRadioButtonMenuItem repairMode = 
       new JRadioButtonMenuItem("Restoration Mode");
     repairMode.addActionListener(event -> {
-      String password = JOptionPane.showInputDialog(this,
+      String password = JOptionPane.showInputDialog(menuBar,
           "Enter password to authenrize yourself:");
-      if (password == "tsing") 
+      if (password.equals("tsing")) { 
         macWriter.setRepairMode(repairMode.isSelected());
-      else 
+	  } else {
         JOptionPane.showMessageDialog(this, "Wrong password!");
+		repairMode.setSelected(false);
+		macWriter.setRepairMode(false);
+	  }
     });
 
     JMenuItem exitItem = new JMenuItem("Exit");
     exitItem.addActionListener(event -> System.exit(0));
 
-    JRadioButtonMenuItem engineerMode = new JMenuItem("Engineer");
+    JRadioButtonMenuItem engineerMode = 
+		new JRadioButtonMenuItem("Engineer");
     engineerMode.addActionListener(event -> {
-      String password =  JOptionPane.showInputDialog(this, 
+      String password =  JOptionPane.showInputDialog(menuBar, 
           "Enter password ot enter engineer mode:");
-      if (password == "tsing") {
+      if (password.equals("tsing")) {
         toolBar.setEnabled(engineerMode.isSelected());
       } else {
         JOptionPane.showMessageDialog(this, "Wrong password!");
+		engineerMode.setSelected(false);
+		toolBar.setEnabled(false);
       }
     });
 
     operationMenu.add(repairMode);
-    operationMenu.add(exitItem);
     operationMenu.add(engineerMode);
+	operationMenu.addSeparator();
+	operationMenu.add(exitItem);
 
     // set Setting Menu
     JMenu settingMenu = new JMenu("Setting");
     JRadioButtonMenuItem onTop = new JRadioButtonMenuItem("OnTop");
     onTop.addActionListener(event -> {
-      setAlwaysOnTop(ontop.isSelected());
+      setAlwaysOnTop(onTop.isSelected());
     });
 
     JRadioButtonMenuItem showRetArea = 
@@ -182,6 +200,7 @@ public class IptvView extends JFrame implements ViewInterface {
 
     settingMenu.add(onTop);
     settingMenu.add(showRetArea);
+	settingMenu.add(showToolBar);
     
     //set Help menu
     JMenu helpMenu = new JMenu("Help");

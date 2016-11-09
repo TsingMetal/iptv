@@ -14,7 +14,8 @@ public class IptvLogger implements Logger, MacWritingListener {
     if ((e.getCmd() == "write_mac_to_stb" && e.getStatus() == "pass") 
         || e.getStatus() == "fail")
     {
-      map = e.getResultMap(); // map initialized here
+      LinkedHashMap<String, String> map = 
+		  e.getResultMap(); // map initialized here
       log(map);
     } else {
       // do nothing;
@@ -23,6 +24,6 @@ public class IptvLogger implements Logger, MacWritingListener {
 
   @Override
   public void log(LinkedHashMap<String, String> map) {
-    XmlWriter.write(map);
+    xmlWriter.write(map);
   }
 }
