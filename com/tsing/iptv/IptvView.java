@@ -15,7 +15,9 @@ public class IptvView extends JFrame implements ViewInterface {
   public JTextArea retArea; // to show xml string return from STB
 	public JLabel resultLabel; // to show test result(fail or pass)
 
-  MacWriter macWriter;
+  private JToolBar toolBar;
+
+  // MacWriter macWriter;
   XmlParser xmlParser;
   Logger logger;
   DBConnector dbConnector;
@@ -47,6 +49,17 @@ public class IptvView extends JFrame implements ViewInterface {
     setSize(screenWidth*3 / 4, screenHeight*3 / 4); // set frame size;
     setLocation(screenWidth*1 / 8, screenHeight*1 / 8); //set initial position;
 
+    setMainPanel();
+    setToolBar();
+    setMenuBar();
+    setInputDialog();
+
+    setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+    setVisible(true);
+  }
+
+  private void setMainPanel() {
+    // set infomation area:
     JPanel panel = new JPanel(new BorderLayout(5, 10));
 
     infoArea = new JTextPane();
@@ -72,34 +85,111 @@ public class IptvView extends JFrame implements ViewInterface {
 		panel.add(statusLabel, BorderLayout.SOUTH);
     panel.add(retArea, BorderLayout.NORTH);
 
-    add(panel);  // add panel to frame
+    add(panel, BorderLayout.CENTER);  // add panel to frame
+  }
 
+  private void setToolBar() {
+    // set toolbar:
+    toolBar = new JToolBar();
+    toolBar.setBorder(BorderFactory.createLineBorder(Color.CYAN, 2));
+    toolBar.setEnabled(false);
+    JButton getButton = new JButton("Get Mac");
+    getButton.setToolTip("get SN and Mac from STB");
+    getButton.addActionListener(event -> {
+      macWriter.getMac();
+    });
+    JButton getAdvButton = new JButton("Get Adv");
+    getAdvButton.setToolTip("get adv-security from STB");
+    getAdvButton.addActionListener(event -> {
+      macWriter.checkAdv();
+    });
+    JButton setAdvButton = new JButton("Enable Adv");
+    setAdvButton.setToolTip("Enable adv-security");
+    setAdvButton.addActionListener(event -> {
+      macWriter.setAdv();
+    });
+    JButton setButton = new JButton("Set Mac");
+    setButton.setToolTip("Write Mac and SN to STB");
+    setButton.addActionListener(event -> {
+      // unimplemented
+    });
+    JButton eraseButton = new JButton("Erase Mac");
+    eraseButton.setToolTip("Erase mac from STB");
+    setButton.addActionListener(event -> {
+      macWriter.eraseMac();
+    });
+    JButton rebootSTBButton = new JButton("Reboot STB");
+    rebootSTBButton.setToolTip("Reboot STB");
+    rebootSTBButton.addActionListener(event -> {
+      macWriter.rebootSTB();
+    });
+
+    add(toolBar, BorderLayout.NORTH); //add toolbar to frame
+  }
+
+  private void setMenuBar() {
     JMenuBar menuBar = new JMenuBar();
 
     // set Operation menu:
     JMenu operationMenu = new JMenu("Operation");
-    JMenuItem eraseMacItem = new JMenuItem("Erase Mac");
-    JRadioButtonMenuItem restorationMode = 
+    JRadioButtonMenuItem repairMode = 
       new JRadioButtonMenuItem("Restoration Mode");
+    repairMode.addActionListener(event -> {
+      String password = JOptionPane.showInputDialog(this,
+          "Enter password to authenrize yourself:");
+      if (password == "tsing") 
+        macWriter.setRepairMode(repairMode.isSelected());
+      else 
+        JOptionPane.showMessageDialog(this, "Wrong password!");
+    });
+
     JMenuItem exitItem = new JMenuItem("Exit");
-    operationMenu.add(eraseMacItem);
-    operationMenu.add(restorationMode);
+    exitItem.addActionListener(event -> System.exit(0));
+
+    JRadioButtonMenuItem engineerMode = new JMenuItem("Engineer");
+    engineerMode.addActionListener(event -> {
+      String password =  JOptionPane.showInputDialog(this, 
+          "Enter password ot enter engineer mode:");
+      if (password == "tsing") {
+        toolBar.setEnabled(engineerMode.isSelected());
+      } else {
+        JOptionPane.showMessageDialog(this, "Wrong password!");
+      }
+    });
+
+    operationMenu.add(repairMode);
     operationMenu.add(exitItem);
+    operationMenu.add(engineerMode);
 
     // set Setting Menu
     JMenu settingMenu = new JMenu("Setting");
     JRadioButtonMenuItem onTop = new JRadioButtonMenuItem("OnTop");
+    onTop.addActionListener(event -> {
+      setAlwaysOnTop(ontop.isSelected());
+    });
+
     JRadioButtonMenuItem showRetArea = 
       new JRadioButtonMenuItem("Show Ret Area");
     showRetArea.addActionListener(event -> {
       retArea.setVisible(showRetArea.isSelected());
     });
+
+    JRadioButtonMenuItem showToolBar = 
+      new JRadioButtonMenuItem("Show Toolbar"); 
+    showToolBar.addActionListener(event -> {
+      toolBar.setVisible(showToolBar.isSelected());
+    });
+
     settingMenu.add(onTop);
     settingMenu.add(showRetArea);
     
     //set Help menu
     JMenu helpMenu = new JMenu("Help");
     JMenuItem aboutItem = new JMenuItem("About");
+    aboutItem.addActionListener(event -> {
+      JOptionPane.showMessageDialog(this,
+          "Mac Writer\nversion 1.0.0.0\nAuthor Tsing\n" + "Tel: 15285647630");
+    });
     helpMenu.add(aboutItem);
 
     menuBar.add(operationMenu);
@@ -107,15 +197,16 @@ public class IptvView extends JFrame implements ViewInterface {
     menuBar.add(helpMenu);
 
     setJMenuBar(menuBar);
+  }
 
-    setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-    setVisible(true);
 		
+  private void setInputDialog() {
 		inputDialog = new InputDialog(this, true);
 		inputDialog.setVisible(true);
   }
 
 	public void macWritingPerformed(MacWritingEvent e) {
+    // unimplemented yet
 	}
 
 	public class InputDialog extends JDialog {
